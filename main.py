@@ -108,9 +108,15 @@ def rotate_right(n, b):
     """Побитовый сдвиг вправо."""
     return ((n >> b) | (n << (32 - b))) & 0xFFFFFFFF
 
+
 def verify_folder_integrity(folder_path):
     """Проверяет целостность файлов в папке."""
+    integrity_results = []
+
+    # Инициализация пустого словаря для хранения сохраненных хешей
     saved_hashes = {}
+
+    # Имя файла, в который будут сохраняться хеши
     hash_file = "hashes.json"
 
     # Загружаем сохраненные хэши (если есть)
@@ -118,32 +124,39 @@ def verify_folder_integrity(folder_path):
         with open(hash_file, "r") as f:
             saved_hashes = json.load(f)
 
+    # Проходим по всем файлам в указанной папке и ее подпапках
     for root, _, files in os.walk(folder_path):
         for file_name in files:
             file_path = os.path.join(root, file_name)
+
+            # Открываем файл в бинарном режиме и читаем его данные(в виде байт)
             with open(file_path, "rb") as file:
                 file_data = file.read()
+
+            # Вычисляем ожидаемый хеш для файла
             expected_hash = calculate_sha256(file_data)
+
+            # Получаем сохраненный хеш для файла из словаря
             saved_hash = saved_hashes.get(file_path)
 
+            # Проверяем соответствие хешей
             if saved_hash:
                 if saved_hash == expected_hash:
-                    print(f"File: {file_path} | Integrity verified. Hash matches saved value.")
+                    integrity_results.append(f"Файл: {file_path} | Целостность подтверждена. Хэш совпадает с сохраненным значением.")
                 else:
-                    print(f"File: {file_path} | Integrity check failed. Hash does not match saved value.")
+                    integrity_results.append(f"Файл: {file_path} | Проверка целостности не пройдена. Хэш не совпадает с сохраненным значением.")
             else:
-                print(f"File: {file_path} | New file. Calculated hash: {expected_hash}")
+                integrity_results.append(f"Файл: {file_path} | Новый файл. Вычисленный хэш: {expected_hash}")
 
-            # Сохраняем хэш в файл
+            # Сохраняем хеш файла в словарь
             saved_hashes[file_path] = expected_hash
 
-    # Сохраняем обновленные хэши
+    # Сохраняем обновленные хеши в файл JSON
     with open(hash_file, "w") as f:
         json.dump(saved_hashes, f, indent=4)
 
-# if __name__ == "__main__":
-#     folder_to_check = "./f"
-#     verify_folder_integrity(folder_to_check)
+    return integrity_results
+
 
 def choose_folder():
     """Открывает диалоговое окно проводника для выбора папки."""
@@ -152,7 +165,25 @@ def choose_folder():
 
     folder_path = filedialog.askdirectory()  # Открываем диалоговое окно для выбора папки
     if folder_path:
-        verify_folder_integrity(folder_path)
+        result = verify_folder_integrity(folder_path)
+        print(result)
+        display_result(result)
+    root.mainloop()
+
+def display_result(result):
+    """Отображает результат в графическом окне."""
+    result_window = tk.Toplevel()
+    result_window.title("Результат проверки целостности файлов")
+
+    # Создаем текстовое поле для отображения результата
+    result_text = tk.Text(result_window, wrap=tk.WORD)
+    result_text.insert(tk.END, "\n".join(result))
+    result_text.config(state=tk.DISABLED)  # Запрещаем редактирование текста
+    result_text.pack(fill=tk.BOTH, expand=True)
+
+    # Кнопка для закрытия окна и завершения программы
+    ok_button = tk.Button(result_window, text="OK", command=lambda: [result_window.destroy(), result_window.quit()])
+    ok_button.pack()
 
 if __name__ == "__main__":
     choose_folder()
