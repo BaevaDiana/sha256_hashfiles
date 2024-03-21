@@ -35,18 +35,23 @@ def calculate_sha256(data):
         0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
     ]
 
-    # Предварительная обработка данных
+    # Предварительная обработка данных(переводим в байты)
     bit_len = len(data) * 8
+    #добавить 1
     data += b'\x80'
+    #пока не 448
     while len(data) % 64 != 56:
+        #добавляем 0
         data += b'\x00'
+    #добавляется длина слова в битах - 8 байт
     data += bit_len.to_bytes(8, 'big')
 
-    # Разбивка данных на блоки
+    # Разбивка данных на блоки - по 64 байта
     blocks = [data[i:i+64] for i in range(0, len(data), 64)]
 
     # Цикл хеширования для каждого блока
     for block in blocks:
+        #разбиваем на слова по 4 байта
         words = [int.from_bytes(block[i:i+4], 'big') for i in range(0, 64, 4)]
 
         # Расширение 16-ти 32-битных слов до 64-ти 32-битных слов
@@ -101,7 +106,7 @@ def calculate_sha256(data):
         h6 = (h6 + g) & 0xFFFFFFFF
         h7 = (h7 + h) & 0xFFFFFFFF
 
-    # Возвращаем хеш в виде строки
+    # Возвращаем хеш в виде строки 16теричной по 8 сим на хеш
     return '{:08x}{:08x}{:08x}{:08x}{:08x}{:08x}{:08x}{:08x}'.format(h0, h1, h2, h3, h4, h5, h6, h7)
 
 def rotate_right(n, b):
